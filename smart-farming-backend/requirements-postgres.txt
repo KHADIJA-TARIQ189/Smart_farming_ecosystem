@@ -1,0 +1,14 @@
+# Only needed once you switch DATABASE_URL to postgresql:// (see README section 3).
+# Not required for the default SQLite setup.
+#
+# On Windows this needs PostgreSQL's pg_config on PATH to build from source,
+# OR you can just install psycopg2-binary which normally ships prebuilt wheels:
+#
+#   pip install psycopg2-binary==2.9.9
+#
+# If that still tries to build from source (no wheel for your Python version),
+# install PostgreSQL locally first (https://www.postgresql.org/download/windows/)
+# so pg_config is available, or run the backend via Docker Compose instead where
+# this isn't an issue.
+
+psycopg2-binary==2.9.9

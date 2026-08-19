@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FieldSense — Smart Farming Control Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ TOASTS (success / error messages) ============ -->
+<div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+
+<!-- ============ TOP NAV ============ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="brand" data-nav="home" aria-label="FieldSense home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">FieldSense</span>
+    </button>
+
+    <nav class="topnav" id="nav-public">
+      <button class="nav-link" data-nav="home">Overview</button>
+      <button class="nav-link" data-nav="login">Log in</button>
+      <button class="nav-btn" data-nav="register">Create account</button>
+    </nav>
+
+    <nav class="topnav" id="nav-private" hidden>
+      <span class="user-chip" id="user-chip">
+        <span class="user-dot" aria-hidden="true"></span>
+        <span id="user-chip-name">—</span>
+      </span>
+      <button class="nav-link" data-nav="dashboard">Farms</button>
+      <button class="nav-btn nav-btn-ghost" id="btn-logout">Log out</button>
+    </nav>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- ============ HOME / HERO ============ -->
+  <section class="view" id="view-home" data-view="home">
+    <div class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Field-level monitoring, one dashboard</p>
+        <h1>Know the exact moment<br>your soil needs water.</h1>
+        <p class="hero-sub">
+          FieldSense connects the moisture, temperature and humidity sensors on your farm
+          to live alerts and one-tap pump control — so decisions happen in seconds, not
+          after a walk to the field.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" data-nav="register">Create your account</button>
+          <button class="btn btn-secondary btn-lg" data-nav="login">I already have one</button>
+        </div>
+        <p class="hero-meta">No hardware required to explore — simulate sensor data straight from the dashboard.</p>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="pulse-panel">
+          <div class="pulse-panel-head">
+            <span class="pulse-dot-live"></span> LIVE FIELD GRID
+          </div>
+          <div class="pulse-grid" id="pulse-grid"></div>
+          <div class="pulse-readout">
+            <div><span class="ro-label">MOISTURE</span><span class="ro-val" id="ro-moist">—</span></div>
+            <div><span class="ro-label">TEMP</span><span class="ro-val" id="ro-temp">—</span></div>
+            <div><span class="ro-label">HUMIDITY</span><span class="ro-val" id="ro-hum">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-strip">
+      <div class="feature">
+        <span class="feature-num">01</span>
+        <h3>Register a farm &amp; device</h3>
+        <p>Each device gets its own API key — the same key a real ESP32 sensor node would use to report data.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-num">02</span>
+        <h3>Watch thresholds fire</h3>
+        <p>When moisture drops below the safe range for a crop, an alert is raised automatically — no manual checking.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-num">03</span>
+        <h3>Act in one tap</h3>
+        <p>Turn a pump, fan or light on or off directly from the dashboard, with every action logged.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LOGIN ============ -->
+  <section class="view" id="view-login" data-view="login" hidden>
+    <div class="auth-shell">
+      <div class="auth-card">
+        <p class="eyebrow">Welcome back</p>
+        <h2>Log in to FieldSense</h2>
+        <p class="auth-sub">Enter the email and password you registered with.</p>
+
+        <form id="form-login" novalidate>
+          <label class="field">
+            <span class="field-label">Email address</span>
+            <input class="field-input" type="email" name="email" id="login-email" placeholder="you@farm.com" autocomplete="username" required>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Password</span>
+            <div class="field-input-wrap">
+              <input class="field-input" type="password" name="password" id="login-password" placeholder="Your password" autocomplete="current-password" required minlength="6">
+              <button type="button" class="field-peek" data-peek="login-password" aria-label="Show password">Show</button>
+            </div>
+          </label>
+
+          <div class="form-msg" id="login-msg" role="alert"></div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="login-submit">
+            <span class="btn-label">Log in</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+        </form>
+
+        <p class="auth-switch">New to FieldSense? <button class="link-btn" data-nav="register">Create an account</button></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REGISTER ============ -->
+  <section class="view" id="view-register" data-view="register" hidden>
+    <div class="auth-shell">
+      <div class="auth-card">
+        <p class="eyebrow">Get started</p>
+        <h2>Create your account</h2>
+        <p class="auth-sub">Takes under a minute. You'll be logged in automatically.</p>
+
+        <form id="form-register" novalidate>
+          <label class="field">
+            <span class="field-label">Full name</span>
+            <input class="field-input" type="text" name="name" id="register-name" placeholder="e.g. Ayesha Farmer" autocomplete="name" required>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Email address</span>
+            <input class="field-input" type="email" name="email" id="register-email" placeholder="you@farm.com" autocomplete="email" required>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Password</span>
+            <div class="field-input-wrap">
+              <input class="field-input" type="password" name="password" id="register-password" placeholder="At least 6 characters" autocomplete="new-password" required minlength="6">
+              <button type="button" class="field-peek" data-peek="register-password" aria-label="Show password">Show</button>
+            </div>
+          </label>
+
+          <div class="form-msg" id="register-msg" role="alert"></div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="register-submit">
+            <span class="btn-label">Create account</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+        </form>
+
+        <p class="auth-switch">Already registered? <button class="link-btn" data-nav="login">Log in instead</button></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD (Farms list) ============ -->
+  <section class="view" id="view-dashboard" data-view="dashboard" hidden>
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">Your farms</p>
+        <h2 id="dashboard-heading">Every field, one view</h2>
+      </div>
+      <button class="btn btn-primary" id="btn-open-newfarm">+ Add farm</button>
+    </div>
+
+    <div class="panel" id="newfarm-panel" hidden>
+      <h3>Add a new farm</h3>
+      <form id="form-newfarm" class="inline-form" novalidate>
+        <label class="field">
+          <span class="field-label">Farm name</span>
+          <input class="field-input" type="text" id="farm-name" placeholder="e.g. Green Valley" required>
+        </label>
+        <label class="field">
+          <span class="field-label">Location <span class="optional">(optional)</span></span>
+          <input class="field-input" type="text" id="farm-location" placeholder="e.g. Punjab">
+        </label>
+        <div class="form-msg" id="newfarm-msg" role="alert"></div>
+        <div class="inline-form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span class="btn-label">Save farm</span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-cancel-newfarm">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="farms-grid" class="farms-grid"></div>
+    <div class="empty-state" id="farms-empty" hidden>
+      <h3>No farms yet</h3>
+      <p>Add your first farm to start connecting devices and tracking sensor data.</p>
+      <button class="btn btn-primary" id="btn-empty-newfarm">+ Add your first farm</button>
+    </div>
+  </section>
+
+  <!-- ============ FARM DETAIL ============ -->
+  <section class="view" id="view-farm" data-view="farm" hidden>
+    <div class="page-head">
+      <div>
+        <button class="link-btn back-link" data-nav="dashboard">← All farms</button>
+        <h2 id="farm-heading">Farm</h2>
+        <p class="farm-sub" id="farm-sub"></p>
+      </div>
+      <div class="alert-badge" id="alert-badge" hidden></div>
+    </div>
+
+    <div class="tabbar" id="farm-tabs">
+      <button class="tab-btn is-active" data-tab="devices">Devices</button>
+      <button class="tab-btn" data-tab="crops">Crops</button>
+      <button class="tab-btn" data-tab="alerts">Alerts</button>
+    </div>
+
+    <!-- DEVICES TAB -->
+    <div class="tab-panel is-active" data-tab-panel="devices">
+      <div class="panel-toolbar">
+        <button class="btn btn-primary" id="btn-open-newdevice">+ Add device</button>
+      </div>
+
+      <div class="panel" id="newdevice-panel" hidden>
+        <h3>Add a new device</h3>
+        <form id="form-newdevice" class="inline-form" novalidate>
+          <label class="field">
+            <span class="field-label">Device name</span>
+            <input class="field-input" type="text" id="device-name" placeholder="e.g. Node A — North Field" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Device type</span>
+            <select class="field-input" id="device-type">
+              <option value="esp32">esp32</option>
+              <option value="arduino">arduino</option>
+              <option value="raspberry_pi">raspberry_pi</option>
+              <option value="other">other</option>
+            </select>
+          </label>
+          <div class="form-msg" id="newdevice-msg" role="alert"></div>
+          <div class="inline-form-actions">
+            <button type="submit" class="btn btn-primary">
+              <span class="btn-label">Save device</span>
+              <span class="btn-spinner" hidden></span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-cancel-newdevice">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="devices-list" class="devices-list"></div>
+      <div class="empty-state" id="devices-empty" hidden>
+        <h3>No devices on this farm yet</h3>
+        <p>Add a device to get an API key you can use to send sensor readings — real or simulated.</p>
+      </div>
+    </div>
+
+    <!-- CROPS TAB -->
+    <div class="tab-panel" data-tab-panel="crops">
+      <div class="panel-toolbar">
+        <button class="btn btn-primary" id="btn-open-newcrop">+ Add crop</button>
+      </div>
+
+      <div class="panel" id="newcrop-panel" hidden>
+        <h3>Add a crop</h3>
+        <form id="form-newcrop" class="inline-form" novalidate>
+          <label class="field">
+            <span class="field-label">Crop type</span>
+            <input class="field-input" type="text" id="crop-type" placeholder="e.g. wheat" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Zone <span class="optional">(optional)</span></span>
+            <input class="field-input" type="text" id="crop-zone" placeholder="e.g. Zone 2">
+          </label>
+          <div class="form-msg" id="newcrop-msg" role="alert"></div>
+          <div class="inline-form-actions">
+            <button type="submit" class="btn btn-primary">
+              <span class="btn-label">Save crop</span>
+              <span class="btn-spinner" hidden></span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-cancel-newcrop">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="crops-list" class="crops-list"></div>
+      <div class="empty-state" id="crops-empty" hidden>
+        <h3>No crops recorded yet</h3>
+        <p>Add a crop to track what's planted in each zone of this farm.</p>
+      </div>
+    </div>
+
+    <!-- ALERTS TAB -->
+    <div class="tab-panel" data-tab-panel="alerts">
+      <div id="alerts-list" class="alerts-list"></div>
+      <div class="empty-state" id="alerts-empty" hidden>
+        <h3>No alerts</h3>
+        <p>Threshold breaches — like low soil moisture — will show up here automatically.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DEVICE DETAIL (modal-style panel) ============ -->
+  <div class="drawer-overlay" id="device-drawer-overlay" hidden>
+    <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="device-drawer-title">
+      <div class="drawer-head">
+        <div>
+          <p class="eyebrow" id="device-drawer-type">DEVICE</p>
+          <h3 id="device-drawer-title">Device</h3>
+        </div>
+        <button class="icon-btn" id="btn-close-drawer" aria-label="Close">✕</button>
+      </div>
+
+      <div class="drawer-body">
+        <div class="apikey-box">
+          <span class="field-label">API key <span class="optional">(used by the device / simulator to send data)</span></span>
+          <div class="apikey-row">
+            <code id="device-apikey">—</code>
+            <button class="btn btn-secondary btn-sm" id="btn-copy-apikey">Copy</button>
+          </div>
+        </div>
+
+        <h4 class="drawer-section-title">Latest readings</h4>
+        <div id="device-readings" class="readings-grid"></div>
+        <div class="empty-state empty-state-sm" id="device-readings-empty" hidden>
+          <p>No sensor data yet. Use the simulator below or POST to <code>/sensors/ingest</code>.</p>
+        </div>
+
+        <h4 class="drawer-section-title">Actuator control</h4>
+        <div class="actuator-grid">
+          <div class="actuator-card">
+            <span class="actuator-label">Pump</span>
+            <div class="actuator-toggle" data-actuator="pump">
+              <button class="toggle-btn" data-action="on">On</button>
+              <button class="toggle-btn" data-action="off">Off</button>
+            </div>
+          </div>
+          <div class="actuator-card">
+            <span class="actuator-label">Fan</span>
+            <div class="actuator-toggle" data-actuator="fan">
+              <button class="toggle-btn" data-action="on">On</button>
+              <button class="toggle-btn" data-action="off">Off</button>
+            </div>
+          </div>
+          <div class="actuator-card">
+            <span class="actuator-label">Light</span>
+            <div class="actuator-toggle" data-actuator="light">
+              <button class="toggle-btn" data-action="on">On</button>
+              <button class="toggle-btn" data-action="off">Off</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-msg" id="actuator-msg" role="alert"></div>
+
+        <h4 class="drawer-section-title">Recent activity log</h4>
+        <div id="device-logs" class="logs-list"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <p>FieldSense — a Smart Farming Ecosystem interface. Connects to your FastAPI backend at <code id="footer-api-base">—</code>.</p>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
